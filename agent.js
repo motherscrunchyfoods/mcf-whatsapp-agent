@@ -139,64 +139,47 @@ async function sendOrderCTA(phoneNumberId, phone, lang) {
   );
 }
 
-// ─── Product Catalog Config ───────────────────────────────────────────────────
-const CATALOG_ID = '39905451575769041';
-const CATALOG_THUMBNAIL_SKU = 'MCF-DF-023'; // Crimson Berries as default thumbnail
-
-// Sends the full product catalog browser (all 300+ products with photos)
+// ─── Product Category Menu ────────────────────────────────────────────────────
+// (WhatsApp catalog_message requires Live app mode — using rich list menus instead)
 async function sendFullCatalog(phoneNumberId, phone, lang) {
   const isHindi = lang === 'Hindi' || lang.includes('Hinglish');
-  await sendCatalogMessage(
+  await sendListMessage(
     phoneNumberId, phone,
     isHindi
-      ? '🛍️ *Mother\'s Crunchy Foods ka poora catalog!*\n\nMakhana, Dry Fruits, Trail Mixes, Gift Combos — sab kuch yahan hai.\nProduct pe tap karo aur seedha order karo! 🛒'
-      : '🛍️ *Mother\'s Crunchy Foods full catalog!*\n\nMakhana, Dry Fruits, Trail Mixes, Gift Combos — all here.\nTap any product to view details & order! 🛒',
-    CATALOG_THUMBNAIL_SKU
+      ? '🛍️ *Mother\'s Crunchy Foods — 300+ Products!*\n\nAir-roasted makhana, premium dry fruits, trail mixes aur gift combos.\n\nKaunsi category mein interest hai?'
+      : '🛍️ *Mother\'s Crunchy Foods — 300+ Products!*\n\nAir-roasted makhana, premium dry fruits, trail mixes & gift combos.\n\nWhich category interests you?',
+    isHindi ? '🛍️ Category Dekho' : '🛍️ Browse Categories',
+    [
+      {
+        title: isHindi ? '🍿 Makhana' : '🍿 Makhana',
+        rows: [
+          { id: 'cat_bestseller', title: '🔥 Best Sellers',    description: isHindi ? 'Peri Peri, Cheese, Salt & Pepper — ₹279' : 'Peri Peri, Cheese, Salt & Pepper — ₹279 each' },
+          { id: 'cat_newmak',    title: '✨ New Flavours',     description: isHindi ? 'Thai Chilli, Magic Masala, Chatpata — ₹279' : 'Thai Chilli, Magic Masala, Chatpata — ₹279' },
+          { id: 'cat_combo',     title: '🎯 2-Pack Combos',   description: isHindi ? '24% OFF — koi bhi 2 flavours! ₹449' : '24% OFF — any 2 flavours! ₹449' },
+          { id: 'cat_multipack', title: '📦 3 & 5 Pack',      description: isHindi ? 'Aur bhi zyada savings!' : 'Even bigger savings!' },
+        ]
+      },
+      {
+        title: isHindi ? '🌰 Dry Fruits & Nuts' : '🌰 Dry Fruits & Nuts',
+        rows: [
+          { id: 'cat_dryfruits', title: '🫐 Dry Fruits',       description: isHindi ? 'Dates ₹599, Anjeer ₹559, Berries ₹499+' : 'Dates ₹599, Anjeer ₹559, Berries ₹499+' },
+          { id: 'cat_nuts',      title: '🥜 Premium Nuts',     description: isHindi ? 'Almonds ₹459, Cashews ₹559, Walnuts ₹656' : 'Almonds ₹459, Cashews ₹559, Walnuts ₹656' },
+          { id: 'cat_trail',     title: '🥗 Trail Mixes',      description: isHindi ? 'Healthy mix ₹315–₹679' : 'Healthy blend ₹315–₹679' },
+        ]
+      },
+      {
+        title: isHindi ? '🎁 Gift & Special' : '🎁 Gift & Special',
+        rows: [
+          { id: 'cat_gift',      title: '🎁 Gift Combos',      description: isHindi ? 'Gifting ke liye perfect ₹686–₹1315' : 'Perfect gifting packs ₹686–₹1315' },
+          { id: 'cat_all',       title: '🌐 Poora Catalog',    description: isHindi ? 'Sab kuch website par dekho' : 'View all 300+ products on website' },
+        ]
+      }
+    ]
   );
 }
 
-// Sends specific category products
 async function sendCategoryProducts(phoneNumberId, phone, lang, category) {
-  const isHindi = lang === 'Hindi' || lang.includes('Hinglish');
-
-  const categories = {
-    makhana: {
-      title: isHindi ? '🍿 Makhana Flavours' : '🍿 Makhana Flavours',
-      body: isHindi ? 'Hamare premium air-roasted makhana — NEVER fried!' : 'Our premium air-roasted makhana — NEVER fried!',
-      skus: ['MCF-MAK-001', 'MCF-MAK-002', 'MCF-MAK-003', 'MCF-MAK-004', 'MCF-MAK-005',
-             'MCF-MAK-006', 'MCF-MAK-007', 'MCF-MAK-008', 'MCF-MAK-009', 'MCF-MAK-010']
-    },
-    combo: {
-      title: isHindi ? '🎯 Combo Packs' : '🎯 Combo Packs',
-      body: isHindi ? '24% OFF ke saath 2-pack combos — best value!' : '2-pack combos with 24% OFF — best value!',
-      skus: ['MCF-BDL-MAK-P2-CC-GC', 'MCF-BDL-MAK-P2-CM-CO', 'MCF-BDL-MAK-P2-CC-CO',
-             'MCF-BDL-MAK-P2-CH-PR', 'MCF-BDL-MAK-P2-PR-STC', 'MCF-BDL-MAK-P2-BH-RAW',
-             'MCF-BDL-MAK-P2-BH-TT', 'MCF-BDL-MAK-P2-CM-TF']
-    },
-    dryfruits: {
-      title: isHindi ? '🌰 Dry Fruits & Nuts' : '🌰 Dry Fruits & Nuts',
-      body: isHindi ? 'Premium quality dry fruits — natural & fresh!' : 'Premium dry fruits — natural & fresh!',
-      skus: ['MCF-DF-023', 'MCF-BDL-RA-SNM-200-250']
-    }
-  };
-
-  const cat = categories[category];
-  if (!cat) {
-    await sendFullCatalog(phoneNumberId, phone, lang);
-    return;
-  }
-
-  try {
-    await sendMultiProductMessage(
-      phoneNumberId, phone,
-      cat.title, cat.body,
-      CATALOG_ID,
-      [{ title: cat.title, skus: cat.skus }]
-    );
-  } catch {
-    // Fallback to full catalog if multi-product fails (SKUs might not match)
-    await sendFullCatalog(phoneNumberId, phone, lang);
-  }
+  await sendFullCatalog(phoneNumberId, phone, lang);
 }
 
 async function sendWelcome(phoneNumberId, phone, lang) {
@@ -405,7 +388,85 @@ async function handleButtonAction(buttonId, phoneNumberId, phone, lang) {
       break;
 
     case 'combos':
-      await sendCategoryProducts(phoneNumberId, phone, lang, 'combo');
+    case 'cat_combo':
+      await sendCTAButton(phoneNumberId, phone,
+        isHindi
+          ? '🎯 *2-Pack Combos — 24% OFF!*\n\nKoi bhi 2 flavours choose karo:\nPeri Peri, Cheese, Salt & Pepper, Bhujjia Blast, Butter Bliss, Thai Chilli aur aur bhi!\n\n📦 2-Pack: ₹449 (MRP ₹598)\n🚚 Free delivery above ₹499'
+          : '🎯 *2-Pack Combos — 24% OFF!*\n\nChoose any 2 flavours:\nPeri Peri, Cheese, Salt & Pepper, Bhujjia Blast, Butter Bliss, Thai Chilli & more!\n\n📦 2-Pack: ₹449 (MRP ₹598)\n🚚 Free delivery above ₹499',
+        isHindi ? '🛒 Combo Order Karo' : '🛒 Order Combo',
+        'https://www.motherscrunchyfoods.in/collections/makhana-combo'
+      );
+      break;
+
+    case 'cat_bestseller':
+      await sendCTAButton(phoneNumberId, phone,
+        isHindi
+          ? '🔥 *Best Selling Makhana!*\n\n🥇 Peri Peri — spicy & tangy\n🥈 Salt & Pepper — classic\n🥉 Cheese & Cheddar — kids fav\n4️⃣ Bhujjia Blast — desi tadka\n5️⃣ Butter Bliss — creamy & mild\n\n₹279 each | 2-Pack ₹449 (24% OFF)'
+          : '🔥 *Best Selling Makhana!*\n\n🥇 Peri Peri — spicy & tangy\n🥈 Salt & Pepper — classic\n🥉 Cheese & Cheddar — kids fav\n4️⃣ Bhujjia Blast — desi tadka\n5️⃣ Butter Bliss — creamy & mild\n\n₹279 each | 2-Pack ₹449 (24% OFF)',
+        isHindi ? '🛒 Order Karo' : '🛒 Order Now',
+        'https://www.motherscrunchyfoods.in/collections/makhana'
+      );
+      break;
+
+    case 'cat_newmak':
+      await sendCTAButton(phoneNumberId, phone,
+        isHindi
+          ? '✨ *Naye Flavours — Try Karo!*\n\n🌶️ Sweet Thai Chilli\n🌿 Magic Masala\n💫 Chatpata Chaska\n🟢 Green Chilli\n🧄 Spicy Garlic Crunch\n🍅 Tangy Tomato\n\n₹279 each | Combo mein aur savings!'
+          : '✨ *New Flavours — Try Now!*\n\n🌶️ Sweet Thai Chilli\n🌿 Magic Masala\n💫 Chatpata Chaska\n🟢 Green Chilli\n🧄 Spicy Garlic Crunch\n🍅 Tangy Tomato\n\n₹279 each | Save more in combos!',
+        isHindi ? '🛒 Order Karo' : '🛒 Order Now',
+        'https://www.motherscrunchyfoods.in/collections/makhana'
+      );
+      break;
+
+    case 'cat_dryfruits':
+      await sendCTAButton(phoneNumberId, phone,
+        isHindi
+          ? '🫐 *Premium Dry Fruits!*\n\n📅 Medjool Dates — ₹599\n🌿 Royal Anjeer — ₹559\n🫐 Crimson Berries — ₹499\n🫐 Wild Blueberries — ₹699\n\n100% natural, no added sugar!'
+          : '🫐 *Premium Dry Fruits!*\n\n📅 Medjool Dates — ₹599\n🌿 Royal Anjeer — ₹559\n🫐 Crimson Berries — ₹499\n🫐 Wild Blueberries — ₹699\n\n100% natural, no added sugar!',
+        isHindi ? '🛒 Order Karo' : '🛒 Order Now',
+        'https://www.motherscrunchyfoods.in/collections/dry-fruits'
+      );
+      break;
+
+    case 'cat_nuts':
+      await sendCTAButton(phoneNumberId, phone,
+        isHindi
+          ? '🥜 *Premium Nuts!*\n\n🌰 California Almonds — ₹459\n💰 Premium Cashews — ₹559\n🧠 Walnuts — ₹656\n\nFresh roasted, premium quality!'
+          : '🥜 *Premium Nuts!*\n\n🌰 California Almonds — ₹459\n💰 Premium Cashews — ₹559\n🧠 Walnuts — ₹656\n\nFresh roasted, premium quality!',
+        isHindi ? '🛒 Order Karo' : '🛒 Order Now',
+        'https://www.motherscrunchyfoods.in/collections/nuts'
+      );
+      break;
+
+    case 'cat_trail':
+      await sendCTAButton(phoneNumberId, phone,
+        isHindi
+          ? '🥗 *Trail Mixes!*\n\nNuts, seeds, dry fruits ka perfect blend.\n₹315–₹679\n\nWorkout ke baad ya office snack ke liye perfect!'
+          : '🥗 *Trail Mixes!*\n\nPerfect blend of nuts, seeds & dry fruits.\n₹315–₹679\n\nIdeal post-workout or office snack!',
+        isHindi ? '🛒 Order Karo' : '🛒 Order Now',
+        'https://www.motherscrunchyfoods.in/collections/trail-mix'
+      );
+      break;
+
+    case 'cat_gift':
+      await sendCTAButton(phoneNumberId, phone,
+        isHindi
+          ? '🎁 *Gift Combos — Perfect Gifting!*\n\nBirthday, anniversary, festivals — sab ke liye!\n\n🎀 Small Gift Box — ₹686\n🎁 Medium Gift Hamper — ₹999\n👑 Premium Gift Box — ₹1315\n\nBeautiful packaging included!'
+          : '🎁 *Gift Combos — Perfect for Gifting!*\n\nBirthday, anniversary, festivals & more!\n\n🎀 Small Gift Box — ₹686\n🎁 Medium Gift Hamper — ₹999\n👑 Premium Gift Box — ₹1315\n\nBeautiful packaging included!',
+        isHindi ? '🎁 Gift Order Karo' : '🎁 Order Gift Pack',
+        'https://www.motherscrunchyfoods.in/collections/gift-hampers'
+      );
+      break;
+
+    case 'cat_multipack':
+    case 'cat_all':
+      await sendCTAButton(phoneNumberId, phone,
+        isHindi
+          ? '🌐 *Poora Catalog Dekho!*\n\n300+ products — Makhana, Dry Fruits, Nuts, Trail Mixes, Gift Hampers.\n\nWebsite par sabhi products photos, reviews aur prices ke saath hain!'
+          : '🌐 *Browse Full Catalog!*\n\n300+ products — Makhana, Dry Fruits, Nuts, Trail Mixes, Gift Hampers.\n\nAll products with photos, reviews & prices on website!',
+        isHindi ? '🌐 Website Kholo' : '🌐 Open Website',
+        'https://www.motherscrunchyfoods.in'
+      );
       break;
 
     case 'offers':
