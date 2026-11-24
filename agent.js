@@ -66,6 +66,11 @@ function detectIntent(text) {
       t.includes('gift') || t.includes('dikhao') || t.includes('dikha')) return 'show_catalog';
   if (t.includes('offer') || t.includes('discount') || t.includes('deal') ||
       t.includes('ऑफर') || t.includes('छूट') || t.includes('combo')) return 'show_offers';
+  if (t.includes('track') || t.includes('tracking') || t.includes('status') ||
+      t.includes('kahan hai') || t.includes('kahan h') || t.includes('पहुंचा') ||
+      t.includes('delivery') || t.includes('shipped') || t.includes('dispatch') ||
+      t.includes('मेरा order') || t.includes('order track') || t.includes('order status') ||
+      t.includes('order kahan') || t.includes('parcel') || t.includes('courier')) return 'track_order';
   if (t.includes('order') || t.includes('buy') || t.includes('kharidna') ||
       t.includes('खरीद') || t.includes('purchase')) return 'show_order_cta';
   if (t === 'hi' || t === 'hello' || t === 'namaste' || t === 'hii' ||
@@ -180,6 +185,91 @@ async function sendFullCatalog(phoneNumberId, phone, lang) {
 
 async function sendCategoryProducts(phoneNumberId, phone, lang, category) {
   await sendFullCatalog(phoneNumberId, phone, lang);
+}
+
+// ─── Order Tracking ───────────────────────────────────────────────────────────
+const orderTrackingPending = new Map(); // phone → true (waiting for order number)
+
+async function sendOrderTrackingPrompt(phoneNumberId, phone, lang) {
+  const isHindi = lang === 'Hindi' || lang.includes('Hinglish');
+  orderTrackingPending.set(phone, true);
+  await sendTextMessage(phoneNumberId, phone,
+    isHindi
+      ? '📦 Apna *Order Number* share karo (jaise: #1234)\n\nOrder number aapko email ya SMS mein mila hoga.'
+      : '📦 Please share your *Order Number* (e.g. #1234)\n\nYou can find it in your order confirmation email or SMS.'
+  );
+}
+
+async function handleOrderTracking(phoneNumberId, phone, lang, orderText) {
+  const isHindi = lang === 'Hindi' || lang.includes('Hinglish');
+  orderTrackingPending.delete(phone);
+
+  // Extract order number
+  const match = orderText.match(/#?(\d{3,6})/);
+  const orderNum = match ? match[1] : null;
+
+  if (!orderNum) {
+    await sendTextMessage(phoneNumberId, phone,
+      isHindi
+        ? '❌ Order number nahi mila. Dobara try karo — jaise: #1234 ya sirf 1234 likhein.'
+        : '❌ Could not find order number. Try again — e.g. #1234 or just 1234.'
+    );
+    return;
+  }
+
+  // If Shopify API is available, fetch real status
+  if (process.env.SHOPIFY_ACCESS_TOKEN && process.env.SHOPIFY_STORE_URL) {
+    try {
+      const axios = require('axios');
+      const res = await axios.get(
+        `https://${process.env.SHOPIFY_STORE_URL}/admin/api/2024-01/orders.json?name=${encodeURIComponent('#' + orderNum)}&status=any`,
+        { headers: { 'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN } }
+      );
+      const orders = res.data.orders;
+      if (orders && orders.length > 0) {
+        const order = orders[0];
+        const status = order.fulfillment_status || 'confirmed';
+        const financialStatus = order.financial_status;
+        const trackingUrl = order.fulfillments?.[0]?.tracking_url || null;
+
+        const statusEmoji = { fulfilled: '🚚', partial: '📦', null: '✅', confirmed: '✅', unfulfilled: '📦' };
+        const statusText = {
+          fulfilled: isHindi ? 'Shipped (Bhej diya gaya)' : 'Shipped',
+          unfulfilled: isHindi ? 'Processing (Taiyaar ho raha hai)' : 'Processing',
+          partial: isHindi ? 'Partially Shipped' : 'Partially Shipped',
+          null: isHindi ? 'Order Confirmed' : 'Order Confirmed'
+        };
+
+        const emoji = statusEmoji[status] || '📦';
+        const statusLabel = statusText[status] || status;
+
+        let msg = isHindi
+          ? `${emoji} *Order #${orderNum} Status*\n\nStatus: *${statusLabel}*\nPayment: ${financialStatus === 'paid' ? '✅ Paid' : '⏳ Pending'}`
+          : `${emoji} *Order #${orderNum} Status*\n\nStatus: *${statusLabel}*\nPayment: ${financialStatus === 'paid' ? '✅ Paid' : '⏳ Pending'}`;
+
+        if (trackingUrl) {
+          await sendCTAButton(phoneNumberId, phone, msg,
+            isHindi ? '🚚 Order Track Karo' : '🚚 Track Order',
+            trackingUrl
+          );
+        } else {
+          await sendTextMessage(phoneNumberId, phone, msg);
+        }
+        return;
+      }
+    } catch (err) {
+      console.error('Shopify order lookup error:', err.message);
+    }
+  }
+
+  // Fallback: redirect to website
+  await sendCTAButton(phoneNumberId, phone,
+    isHindi
+      ? `📦 *Order #${orderNum}*\n\nShiprocket tracking pe apna order status check karo. Order number aur email/phone ready rakhein.`
+      : `📦 *Order #${orderNum}*\n\nTrack your order status via Shiprocket. Keep your order number and email/phone ready.`,
+    isHindi ? '🚚 Track Karo' : '🚚 Track Order',
+    'https://www.motherscrunchyfoods.in'
+  );
 }
 
 async function sendWelcome(phoneNumberId, phone, lang) {
@@ -302,6 +392,12 @@ async function handleMessage(message, phoneNumberId) {
     return;
   }
 
+  // Handle order tracking conversation (waiting for order number)
+  if (orderTrackingPending.get(phone)) {
+    await handleOrderTracking(phoneNumberId, phone, lang, userText);
+    return;
+  }
+
   // Detect intent for smart interactive responses
   const intent = detectIntent(userText);
 
@@ -333,6 +429,11 @@ async function handleMessage(message, phoneNumberId) {
   }
   if (intent === 'show_order_cta') {
     await sendOrderCTA(phoneNumberId, phone, lang);
+    trackLead(phone, userText, isNew);
+    return;
+  }
+  if (intent === 'track_order') {
+    await sendOrderTrackingPrompt(phoneNumberId, phone, lang);
     trackLead(phone, userText, isNew);
     return;
   }

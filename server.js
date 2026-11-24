@@ -56,6 +56,33 @@ app.get('/leads', (req, res) => {
   res.json({ stats: getLeadStats(), leads: getAllLeads() });
 });
 
+// Shopify Order Webhook — sends WhatsApp confirmation when order is placed
+app.post('/webhook/shopify-order', express.raw({ type: 'application/json' }), async (req, res) => {
+  res.status(200).send('ok');
+  try {
+    const order = JSON.parse(req.body);
+    const phone = order.billing_address?.phone || order.shipping_address?.phone || order.customer?.phone;
+    if (!phone) return;
+
+    // Normalize phone to international format
+    let normalizedPhone = phone.replace(/[\s\-\(\)]/g, '');
+    if (normalizedPhone.startsWith('0')) normalizedPhone = '91' + normalizedPhone.slice(1);
+    if (!normalizedPhone.startsWith('91')) normalizedPhone = '91' + normalizedPhone;
+
+    const orderNum = order.order_number || order.name;
+    const total = order.total_price;
+    const { sendTextMessage, sendCTAButton } = require('./whatsapp');
+    const phoneNumberId = process.env.PHONE_NUMBER_ID;
+
+    await sendTextMessage(phoneNumberId, normalizedPhone,
+      `✅ *Order Confirmed!*\n\nThank you for your order at Mother's Crunchy Foods! 🎉\n\n📦 Order: *${orderNum}*\n💰 Total: ₹${total}\n\nAap ka order jald hi ship ho jayega. Tracking details aate hi WhatsApp karenge! 🚚\n\n🙏 Mother's Crunchy Foods`
+    );
+    console.log(`📦 Order notification sent to ${normalizedPhone} for order ${orderNum}`);
+  } catch (err) {
+    console.error('Shopify order webhook error:', err.message);
+  }
+});
+
 // Shopify OAuth callback — captures access token from Partner app installation
 app.get('/shopify/callback', async (req, res) => {
   const { code, shop } = req.query;
