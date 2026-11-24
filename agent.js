@@ -59,9 +59,11 @@ function detectIntent(text) {
       t.includes('कीमत') || t.includes('दाम') || t.includes('rupee') ||
       t.includes('₹') || t.includes('rs.')) return 'show_pricing';
   if (t.includes('catalog') || t.includes('catalogue') || t.includes('all product') ||
-      t.includes('sabhi product') || t.includes('product dekho') || t.includes('product list') ||
-      t.includes('browse') || t.includes('shop') || t.includes('सभी') || t.includes('dry fruit') ||
-      t.includes('trail mix') || t.includes('gift')) return 'show_catalog';
+      t.includes('sabhi product') || t.includes('product dekho') || t.includes('product dikhao') ||
+      t.includes('product dikha') || t.includes('product list') || t.includes('product dekhna') ||
+      t.includes('products') || t.includes('browse') || t.includes('shop') ||
+      t.includes('सभी') || t.includes('dry fruit') || t.includes('trail mix') ||
+      t.includes('gift') || t.includes('dikhao') || t.includes('dikha')) return 'show_catalog';
   if (t.includes('offer') || t.includes('discount') || t.includes('deal') ||
       t.includes('ऑफर') || t.includes('छूट') || t.includes('combo')) return 'show_offers';
   if (t.includes('order') || t.includes('buy') || t.includes('kharidna') ||
