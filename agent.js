@@ -187,8 +187,8 @@ async function sendWelcome(phoneNumberId, phone, lang) {
   await sendButtonMessage(
     phoneNumberId, phone,
     isHindi
-      ? '🙏 *Namaste! Main Maya hoon — Mother\'s Crunchy Foods ki AI assistant!*\n\n300+ products hain — Makhana, Dry Fruits, Trail Mixes, Gift Combos!\n\nMain kaise help karoon?'
-      : '👋 *Hi! I\'m Maya — AI assistant for Mother\'s Crunchy Foods!*\n\n300+ products — Makhana, Dry Fruits, Trail Mixes, Gift Combos!\n\nHow can I help you today?',
+      ? '🙏 *Namaste! Main Maya hoon — Mother\'s Crunchy Foods ki AI assistant!*\n\n300+ products hain — Makhana, Dry Fruits, Trail Mixes, Gift Combos!\n\n💡 *Tip:* Chat ke upar 🛍️ catalog icon tap karke saare products photos ke saath directly browse kar sakte ho!\n\nMain kaise help karoon?'
+      : '👋 *Hi! I\'m Maya — AI assistant for Mother\'s Crunchy Foods!*\n\n300+ products — Makhana, Dry Fruits, Trail Mixes, Gift Combos!\n\n💡 *Tip:* Tap the 🛍️ catalog icon at the top of the chat to browse all products with photos!\n\nHow can I help you today?',
     [
       { id: 'browse_catalog', title: isHindi ? '🛍️ Products Dekho' : '🛍️ Browse Products' },
       { id: 'offers',         title: isHindi ? '🔥 Offers Dekho' : '🔥 See Offers' },
