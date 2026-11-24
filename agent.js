@@ -1,7 +1,7 @@
 // MCF WhatsApp AI Agent - Maya v3.0
 // Interactive messages + Multi-language + Smart menus
 const OpenAI = require('openai');
-const { sendTextMessage, sendButtonMessage, sendListMessage, sendCTAButton, markAsRead } = require('./whatsapp');
+const { sendTextMessage, sendButtonMessage, sendListMessage, sendCTAButton, sendCatalogMessage, sendMultiProductMessage, markAsRead } = require('./whatsapp');
 const { getLead, saveLead } = require('./leads');
 
 // ─── AI Client ────────────────────────────────────────────────────────────────
@@ -58,6 +58,10 @@ function detectIntent(text) {
   if (t.includes('price') || t.includes('cost') || t.includes('rate') ||
       t.includes('कीमत') || t.includes('दाम') || t.includes('rupee') ||
       t.includes('₹') || t.includes('rs.')) return 'show_pricing';
+  if (t.includes('catalog') || t.includes('catalogue') || t.includes('all product') ||
+      t.includes('sabhi product') || t.includes('product dekho') || t.includes('product list') ||
+      t.includes('browse') || t.includes('shop') || t.includes('सभी') || t.includes('dry fruit') ||
+      t.includes('trail mix') || t.includes('gift')) return 'show_catalog';
   if (t.includes('offer') || t.includes('discount') || t.includes('deal') ||
       t.includes('ऑफर') || t.includes('छूट') || t.includes('combo')) return 'show_offers';
   if (t.includes('order') || t.includes('buy') || t.includes('kharidna') ||
@@ -133,17 +137,77 @@ async function sendOrderCTA(phoneNumberId, phone, lang) {
   );
 }
 
+// ─── Product Catalog Config ───────────────────────────────────────────────────
+const CATALOG_ID = '39905451575769041';
+const CATALOG_THUMBNAIL_SKU = 'MCF-DF-023'; // Crimson Berries as default thumbnail
+
+// Sends the full product catalog browser (all 300+ products with photos)
+async function sendFullCatalog(phoneNumberId, phone, lang) {
+  const isHindi = lang === 'Hindi' || lang.includes('Hinglish');
+  await sendCatalogMessage(
+    phoneNumberId, phone,
+    isHindi
+      ? '🛍️ *Mother\'s Crunchy Foods ka poora catalog!*\n\nMakhana, Dry Fruits, Trail Mixes, Gift Combos — sab kuch yahan hai.\nProduct pe tap karo aur seedha order karo! 🛒'
+      : '🛍️ *Mother\'s Crunchy Foods full catalog!*\n\nMakhana, Dry Fruits, Trail Mixes, Gift Combos — all here.\nTap any product to view details & order! 🛒',
+    CATALOG_THUMBNAIL_SKU
+  );
+}
+
+// Sends specific category products
+async function sendCategoryProducts(phoneNumberId, phone, lang, category) {
+  const isHindi = lang === 'Hindi' || lang.includes('Hinglish');
+
+  const categories = {
+    makhana: {
+      title: isHindi ? '🍿 Makhana Flavours' : '🍿 Makhana Flavours',
+      body: isHindi ? 'Hamare premium air-roasted makhana — NEVER fried!' : 'Our premium air-roasted makhana — NEVER fried!',
+      skus: ['MCF-MAK-001', 'MCF-MAK-002', 'MCF-MAK-003', 'MCF-MAK-004', 'MCF-MAK-005',
+             'MCF-MAK-006', 'MCF-MAK-007', 'MCF-MAK-008', 'MCF-MAK-009', 'MCF-MAK-010']
+    },
+    combo: {
+      title: isHindi ? '🎯 Combo Packs' : '🎯 Combo Packs',
+      body: isHindi ? '24% OFF ke saath 2-pack combos — best value!' : '2-pack combos with 24% OFF — best value!',
+      skus: ['MCF-BDL-MAK-P2-CC-GC', 'MCF-BDL-MAK-P2-CM-CO', 'MCF-BDL-MAK-P2-CC-CO',
+             'MCF-BDL-MAK-P2-CH-PR', 'MCF-BDL-MAK-P2-PR-STC', 'MCF-BDL-MAK-P2-BH-RAW',
+             'MCF-BDL-MAK-P2-BH-TT', 'MCF-BDL-MAK-P2-CM-TF']
+    },
+    dryfruits: {
+      title: isHindi ? '🌰 Dry Fruits & Nuts' : '🌰 Dry Fruits & Nuts',
+      body: isHindi ? 'Premium quality dry fruits — natural & fresh!' : 'Premium dry fruits — natural & fresh!',
+      skus: ['MCF-DF-023', 'MCF-BDL-RA-SNM-200-250']
+    }
+  };
+
+  const cat = categories[category];
+  if (!cat) {
+    await sendFullCatalog(phoneNumberId, phone, lang);
+    return;
+  }
+
+  try {
+    await sendMultiProductMessage(
+      phoneNumberId, phone,
+      cat.title, cat.body,
+      CATALOG_ID,
+      [{ title: cat.title, skus: cat.skus }]
+    );
+  } catch {
+    // Fallback to full catalog if multi-product fails (SKUs might not match)
+    await sendFullCatalog(phoneNumberId, phone, lang);
+  }
+}
+
 async function sendWelcome(phoneNumberId, phone, lang) {
   const isHindi = lang === 'Hindi' || lang.includes('Hinglish');
   await sendButtonMessage(
     phoneNumberId, phone,
     isHindi
-      ? '🙏 *Namaste! Main Maya hoon — Mother\'s Crunchy Foods ki AI assistant!*\n\nAap kaise help kar sakti hoon?'
-      : '👋 *Hi! I\'m Maya — AI assistant for Mother\'s Crunchy Foods!*\n\nHow can I help you today?',
+      ? '🙏 *Namaste! Main Maya hoon — Mother\'s Crunchy Foods ki AI assistant!*\n\n300+ products hain — Makhana, Dry Fruits, Trail Mixes, Gift Combos!\n\nMain kaise help karoon?'
+      : '👋 *Hi! I\'m Maya — AI assistant for Mother\'s Crunchy Foods!*\n\n300+ products — Makhana, Dry Fruits, Trail Mixes, Gift Combos!\n\nHow can I help you today?',
     [
-      { id: 'flavours',  title: isHindi ? '🍿 Flavours Dekho' : '🍿 See Flavours' },
-      { id: 'offers',    title: isHindi ? '🔥 Offers Dekho' : '🔥 See Offers' },
-      { id: 'order_now', title: isHindi ? '🛒 Order Karo' : '🛒 Order Now' },
+      { id: 'browse_catalog', title: isHindi ? '🛍️ Products Dekho' : '🛍️ Browse Products' },
+      { id: 'offers',         title: isHindi ? '🔥 Offers Dekho' : '🔥 See Offers' },
+      { id: 'order_now',      title: isHindi ? '🛒 Order Karo' : '🛒 Order Now' },
     ]
   );
 }
@@ -267,7 +331,13 @@ async function handleMessage(message, phoneNumberId) {
     return;
   }
   if (intent === 'show_flavours') {
-    await sendFlavoursMenu(phoneNumberId, phone, lang);
+    // Send catalog filtered to makhana, with text list as fallback
+    await sendCategoryProducts(phoneNumberId, phone, lang, 'makhana');
+    trackLead(phone, userText, isNew);
+    return;
+  }
+  if (intent === 'show_catalog') {
+    await sendFullCatalog(phoneNumberId, phone, lang);
     trackLead(phone, userText, isNew);
     return;
   }
@@ -324,8 +394,16 @@ async function handleButtonAction(buttonId, phoneNumberId, phone, lang) {
   const isHindi = lang === 'Hindi' || lang.includes('Hinglish');
 
   switch (buttonId) {
+    case 'browse_catalog':
+      await sendFullCatalog(phoneNumberId, phone, lang);
+      break;
+
     case 'flavours':
-      await sendFlavoursMenu(phoneNumberId, phone, lang);
+      await sendCategoryProducts(phoneNumberId, phone, lang, 'makhana');
+      break;
+
+    case 'combos':
+      await sendCategoryProducts(phoneNumberId, phone, lang, 'combo');
       break;
 
     case 'offers':

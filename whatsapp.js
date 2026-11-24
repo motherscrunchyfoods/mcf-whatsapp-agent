@@ -85,6 +85,46 @@ async function sendCTAButton(phoneNumberId, to, body, displayText, url) {
   await axios.post(`${BASE_URL}/${phoneNumberId}/messages`, payload, { headers: headers() });
 }
 
+// Full product catalog browser (opens all 300+ products with photos in WhatsApp)
+async function sendCatalogMessage(phoneNumberId, to, bodyText, thumbnailSku) {
+  const payload = {
+    messaging_product: 'whatsapp',
+    to,
+    type: 'interactive',
+    interactive: {
+      type: 'catalog_message',
+      body: { text: bodyText },
+      action: {
+        name: 'catalog_message',
+        parameters: { thumbnail_product_retailer_id: thumbnailSku }
+      }
+    }
+  };
+  await axios.post(`${BASE_URL}/${phoneNumberId}/messages`, payload, { headers: headers() });
+}
+
+// Multi-product message — shows specific products from catalog in sections
+async function sendMultiProductMessage(phoneNumberId, to, headerText, bodyText, catalogId, sections) {
+  const payload = {
+    messaging_product: 'whatsapp',
+    to,
+    type: 'interactive',
+    interactive: {
+      type: 'product_list',
+      header: { type: 'text', text: headerText.substring(0, 60) },
+      body: { text: bodyText.substring(0, 1024) },
+      action: {
+        catalog_id: catalogId,
+        sections: sections.map(s => ({
+          title: s.title.substring(0, 24),
+          product_items: s.skus.slice(0, 30).map(sku => ({ product_retailer_id: sku }))
+        }))
+      }
+    }
+  };
+  await axios.post(`${BASE_URL}/${phoneNumberId}/messages`, payload, { headers: headers() });
+}
+
 // Mark message as read (blue ticks)
 async function markAsRead(phoneNumberId, messageId) {
   try {
@@ -98,4 +138,4 @@ async function markAsRead(phoneNumberId, messageId) {
   }
 }
 
-module.exports = { sendTextMessage, sendButtonMessage, sendListMessage, sendCTAButton, markAsRead };
+module.exports = { sendTextMessage, sendButtonMessage, sendListMessage, sendCTAButton, sendCatalogMessage, sendMultiProductMessage, markAsRead };
