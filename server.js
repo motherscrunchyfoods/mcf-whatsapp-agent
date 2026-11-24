@@ -71,7 +71,7 @@ app.post('/webhook/shopify-order', express.raw({ type: 'application/json' }), as
 
     const orderNum = order.order_number || order.name;
     const total = order.total_price;
-    const { sendTextMessage, sendCTAButton } = require('./whatsapp');
+    const { sendTextMessage } = require('./whatsapp');
     const phoneNumberId = process.env.PHONE_NUMBER_ID;
 
     await sendTextMessage(phoneNumberId, normalizedPhone,

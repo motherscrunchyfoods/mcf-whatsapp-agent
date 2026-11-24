@@ -218,12 +218,14 @@ async function handleOrderTracking(phoneNumberId, phone, lang, orderText) {
   }
 
   // If Shopify API is available, fetch real status
-  if (process.env.SHOPIFY_ACCESS_TOKEN && process.env.SHOPIFY_STORE_URL) {
+  if (process.env.SHOPIFY_STORE_URL) {
     try {
       const axios = require('axios');
+      const { getShopifyToken } = require('./shopify-token');
+      const token = await getShopifyToken();
       const res = await axios.get(
-        `https://${process.env.SHOPIFY_STORE_URL}/admin/api/2024-01/orders.json?name=${encodeURIComponent('#' + orderNum)}&status=any`,
-        { headers: { 'X-Shopify-Access-Token': process.env.SHOPIFY_ACCESS_TOKEN } }
+        `https://${process.env.SHOPIFY_STORE_URL}/admin/api/2026-10/orders.json?name=${encodeURIComponent('#' + orderNum)}&status=any`,
+        { headers: { 'X-Shopify-Access-Token': token } }
       );
       const orders = res.data.orders;
       if (orders && orders.length > 0) {
