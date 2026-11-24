@@ -56,6 +56,27 @@ app.get('/leads', (req, res) => {
   res.json({ stats: getLeadStats(), leads: getAllLeads() });
 });
 
+// Shopify OAuth callback — captures access token from Partner app installation
+app.get('/shopify/callback', async (req, res) => {
+  const { code, shop } = req.query;
+  if (!code || !shop) return res.send('Missing code or shop');
+
+  try {
+    const axios = require('axios');
+    const response = await axios.post(`https://${shop}/admin/oauth/access_token`, {
+      client_id: process.env.SHOPIFY_CLIENT_ID,
+      client_secret: process.env.SHOPIFY_CLIENT_SECRET,
+      code
+    });
+    const token = response.data.access_token;
+    console.log(`\n🛍️ SHOPIFY ACCESS TOKEN FOR ${shop}:\n${token}\n`);
+    res.send(`<h2>✅ Token captured!</h2><p>Add this to Railway env vars as <b>SHOPIFY_ACCESS_TOKEN</b>:</p><pre style="background:#f0f0f0;padding:16px;font-size:14px">${token}</pre><p>Store: ${shop}</p>`);
+  } catch (err) {
+    console.error('Shopify OAuth error:', err.message);
+    res.send('Error: ' + err.message);
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`\n🚀 MCF Agent (Maya) running on port ${PORT}`);
